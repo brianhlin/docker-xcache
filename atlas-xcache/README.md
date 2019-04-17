@@ -55,5 +55,8 @@ $ docker run --env-file=<PATH TO ENV FILE> \
              --volume <HOST PATH TO CACHE DISK N>:<CONTAINER MOUNT POINT N> \
              --publish <HOST PORT>:<XC_PORT> \
              --hostname <XCACHE HOSTNAME> \
-             opensciencegrid/atlas-xcache:development
+             opensciencegrid/atlas-xcache:fresh
 ```
+
+See [our documentation](https://opensciencegrid.org/technology/policy/container-release/#tags) for details of our docker
+image tags.

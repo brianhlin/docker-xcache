@@ -21,11 +21,13 @@ own values:
 
 ```
 $ docker run --rm --publish <HOST PORT>:8000 \
-             opensciencegrid/stash-cache:development
+             opensciencegrid/stash-cache:fresh
 ```
 
 The `HOST PORT` is the port on your computer which will accept caching requests.  You may see some failures.  
 
+See [our documentation](https://opensciencegrid.org/technology/policy/container-release/#tags) for details of our docker
+image tags.
 
 You can verify that it worked with the command:
 
