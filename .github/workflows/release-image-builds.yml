@@ -9,20 +9,20 @@ on:
   #   - cron: '34 2 * * TUE'
 
 jobs:
-  clone-repo:
-    name: Clone the repo for the subsequent jobs
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out docker-xcache
-        uses: actions/checkout@v2
-        with:
-          path: docker-xcache
-          fetch-depth: 1
-      - name: Upload docker-xcache repo artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: docker-xcache-repo
-          path: ./docker-xcache
+  # clone-repo:
+  #   name: Clone the repo for the subsequent jobs
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out docker-xcache
+  #       uses: actions/checkout@v2
+  #       with:
+  #         path: docker-xcache
+  #         fetch-depth: 1
+  #     - name: Upload docker-xcache repo artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: docker-xcache-repo
+  #         path: ./docker-xcache
   # base-image-build:
   #   name: Build initial xcache:${{ matrix.yum_repo_prefix }}fresh base image
   #   needs: clone-repo
@@ -97,9 +97,11 @@ jobs:
         yum_repo_prefix: ["upcoming-", ""]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - name: Check out docker-xcache
+        uses: actions/checkout@v2
         with:
-          name: docker-xcache-repo
+          path: docker-xcache
+          fetch-depth: 1
       - run: pwd
       - run: ls -lR
       - run: ./tests/test_stashcache_origin.sh
