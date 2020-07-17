@@ -104,8 +104,8 @@ jobs:
           fetch-depth: 1
       - run: pwd
       - run: ls -lR
-      - run: ./tests/test_stashcache_origin.sh
-      - run: ./tests/test_stashcache.sh
+      - run: ./docker-xcache/tests/test_stashcache_origin.sh
+      - run: ./docker-xcache/tests/test_stashcache.sh
   # get-timestamp:
   #   name: Get timestamp for tagging images
   #   needs: test-stash-cache
