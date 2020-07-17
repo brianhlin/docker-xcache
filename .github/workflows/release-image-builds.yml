@@ -91,10 +91,6 @@ jobs:
   #         name: ${{ matrix.image }}-image-${{ matrix.yum_repo_prefix }}fresh
   #         path: /tmp/${{ matrix.image }}.tar
   test-stash-cache:
-    name: Test Stash Cache and Origin (${{ matrix.yum_repo_prefix }}fresh)
-    strategy:
-      matrix:
-        yum_repo_prefix: ["upcoming-", ""]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v2
