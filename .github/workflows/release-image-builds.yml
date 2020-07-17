@@ -35,110 +35,113 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: docker-xcache-repo
-      - name: Build XCache base image
-        uses: docker/build-push-action@v1
-        with:
-          repository: brianhlin/xcache
-          path: ./xcache
-          push: false
-          build_args: BASE_YUM_REPO=osg-${{ matrix.yum_repo_prefix }}minefield
-          tags: ${{ matrix.yum_repo_prefix }}fresh
-      - name: Save xcache:${{ matrix.yum_repo_prefix }}fresh image
-        run: docker save --output /tmp/xcache.tar brianhlin/xcache:${{ matrix.yum_repo_prefix }}fresh
-      - name: Upload xcache:${{ matrix.yum_repo_prefix }}fresh image artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: xcache-image-${{ matrix.yum_repo_prefix }}fresh
-          path: /tmp/xcache.tar
-  xcache-image-builds:
-    name: Build ${{ matrix.image }}:${{ matrix.yum_repo_prefix}}fresh image
-    strategy:
-      matrix:
-        image: [atlas-xcache, cms-xcache, stash-cache, stash-origin]
-        yum_repo_prefix: ["upcoming-", ""]
-    needs: base-image-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download docker-xcache
-        uses: actions/download-artifact@v2
-        with:
-          name: docker-xcache-repo
-      - name: Download XCache base image artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: xcache-image-${{ matrix.yum_repo_prefix }}fresh
-      - name: Load XCache base image
-        run: docker load -i xcache.tar
-      - name: Replace FROM line in Dockerfile
-        working-directory: ${{ matrix.image }}
-        run: sed -i "s|FROM opensciencegrid/xcache:fresh|FROM brianhlin/xcache:${{ matrix.yum_repo_prefix}}fresh|" Dockerfile
-      - name: Build ${{ matrix.image}} image
-        uses: docker/build-push-action@v1
-        with:
-          repository: brianhlin/${{ matrix.image }}
-          push: false
-          path: ./${{ matrix.image }}
-          build_args: BASE_YUM_REPO=osg-${{ matrix.yum_repo_prefix }}minefield
-          tags: ${{ matrix.yum_repo_prefix }}fresh
-      - name: Save ${{ matrix.image }}:${{ matrix.yum_repo_prefix}}fresh image
-        run: docker save --output /tmp/${{ matrix.image }}.tar brianhlin/${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh
-      - name: Upload ${{ matrix.image }}:${{ matrix.yum_repo_prefix}}fresh artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.image }}-image-${{ matrix.yum_repo_prefix }}fresh
-          path: /tmp/${{ matrix.image }}.tar
-  test-stash-cache:
-    name: Test Stash Cache and Origin (${{ matrix.yum_repo_prefix }}fresh)
-    strategy:
-      matrix:
-        yum_repo_prefix: ["upcoming-", ""]
-    needs: xcache-image-builds
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: docker-xcache-repo
-      - uses: actions/download-artifact@v2
-        with:
-          name: stash-cache-image-${{ matrix.yum_repo_prefix }}fresh
-      - uses: actions/download-artifact@v2
-        with:
-          name: stash-origin-image-${{ matrix.yum_repo_prefix }}fresh
-      - run: docker load -i stash-cache.tar
-      - run: docker load -i stash-origin.tar
-      - run: ./tests/test_stashcache_origin.sh
-      - run: ./tests/test_stashcache.sh
-  get-timestamp:
-    name: Get timestamp for tagging images
-    needs: test-stash-cache
-    runs-on: ubuntu-latest
-    outputs:
-      timestamp: ${{ steps.timestamp-tag.outputs.timestamp }}
-    steps:
-      - name: Get timestamp for timestamp tags
-        id: timestamp-tag
-        run: echo "::set-output name=timestamp::$(date +%Y%m%d-%H%M)"
-  push-images:
-    name: Push ${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh image
-    strategy:
-      matrix:
-        image: [atlas-xcache, cms-xcache, stash-cache, stash-origin, xcache]
-        yum_repo_prefix: ["upcoming-", ""]
-    needs: get-timestamp
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download ${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ matrix.image }}-image-${{ matrix.yum_repo_prefix }}fresh
-      - name: Load ${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh image
-        run: docker load -i ${{ matrix.image }}.tar
-      - name: Build ${{ matrix.image}} image
-        uses: docker/build-push-action@v1
-        with:
-          repository: brianhlin/${{ matrix.image }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          path: ./.github/Dockerfile.dummy
-          build_args: IMAGE_NAME=${{ matrix.yum_repo_prefix }}, TAG_NAME=${{ matrix.yum_repo_prefix }}fresh
-          tags: ${{ matrix.yum_repo_prefix }}fresh, ${{ matrix.yum_repo_prefix }}${{ needs.get-timestamp.outputs.timestamp }}
+      - run: echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u $GITHUB_ACTOR --password-stdin
+      - run: docker build -t xcache:${{ matrix.yum_repo_prefix }}minefield xcache
+      - run: docker push docker.pkg.github.com/$GITHUB_REPOSITORY/xcache:${{ matrix.yum_repo_prefix }}minefield
+  #     - name: Build XCache base image
+  #       uses: docker/build-push-action@v1
+  #       with:
+  #         repository: brianhlin/xcache
+  #         path: ./xcache
+  #         push: false
+  #         build_args: BASE_YUM_REPO=osg-${{ matrix.yum_repo_prefix }}minefield
+  #         tags: ${{ matrix.yum_repo_prefix }}fresh
+  #     - name: Save xcache:${{ matrix.yum_repo_prefix }}fresh image
+  #       run: docker save --output /tmp/xcache.tar brianhlin/xcache:${{ matrix.yum_repo_prefix }}fresh
+  #     - name: Upload xcache:${{ matrix.yum_repo_prefix }}fresh image artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: xcache-image-${{ matrix.yum_repo_prefix }}fresh
+  #         path: /tmp/xcache.tar
+  # xcache-image-builds:
+  #   name: Build ${{ matrix.image }}:${{ matrix.yum_repo_prefix}}fresh image
+  #   strategy:
+  #     matrix:
+  #       image: [atlas-xcache, cms-xcache, stash-cache, stash-origin]
+  #       yum_repo_prefix: ["upcoming-", ""]
+  #   needs: base-image-build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Download docker-xcache
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: docker-xcache-repo
+  #     - name: Download XCache base image artifact
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: xcache-image-${{ matrix.yum_repo_prefix }}fresh
+  #     - name: Load XCache base image
+  #       run: docker load -i xcache.tar
+  #     - name: Replace FROM line in Dockerfile
+  #       working-directory: ${{ matrix.image }}
+  #       run: sed -i "s|FROM opensciencegrid/xcache:fresh|FROM brianhlin/xcache:${{ matrix.yum_repo_prefix}}fresh|" Dockerfile
+  #     - name: Build ${{ matrix.image}} image
+  #       uses: docker/build-push-action@v1
+  #       with:
+  #         repository: brianhlin/${{ matrix.image }}
+  #         push: false
+  #         path: ./${{ matrix.image }}
+  #         build_args: BASE_YUM_REPO=osg-${{ matrix.yum_repo_prefix }}minefield
+  #         tags: ${{ matrix.yum_repo_prefix }}fresh
+  #     - name: Save ${{ matrix.image }}:${{ matrix.yum_repo_prefix}}fresh image
+  #       run: docker save --output /tmp/${{ matrix.image }}.tar brianhlin/${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh
+  #     - name: Upload ${{ matrix.image }}:${{ matrix.yum_repo_prefix}}fresh artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: ${{ matrix.image }}-image-${{ matrix.yum_repo_prefix }}fresh
+  #         path: /tmp/${{ matrix.image }}.tar
+  # test-stash-cache:
+  #   name: Test Stash Cache and Origin (${{ matrix.yum_repo_prefix }}fresh)
+  #   strategy:
+  #     matrix:
+  #       yum_repo_prefix: ["upcoming-", ""]
+  #   needs: xcache-image-builds
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: docker-xcache-repo
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: stash-cache-image-${{ matrix.yum_repo_prefix }}fresh
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: stash-origin-image-${{ matrix.yum_repo_prefix }}fresh
+  #     - run: docker load -i stash-cache.tar
+  #     - run: docker load -i stash-origin.tar
+  #     - run: ./tests/test_stashcache_origin.sh
+  #     - run: ./tests/test_stashcache.sh
+  # get-timestamp:
+  #   name: Get timestamp for tagging images
+  #   needs: test-stash-cache
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     timestamp: ${{ steps.timestamp-tag.outputs.timestamp }}
+  #   steps:
+  #     - name: Get timestamp for timestamp tags
+  #       id: timestamp-tag
+  #       run: echo "::set-output name=timestamp::$(date +%Y%m%d-%H%M)"
+  # push-images:
+  #   name: Push ${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh image
+  #   strategy:
+  #     matrix:
+  #       image: [atlas-xcache, cms-xcache, stash-cache, stash-origin, xcache]
+  #       yum_repo_prefix: ["upcoming-", ""]
+  #   needs: get-timestamp
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Download ${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: ${{ matrix.image }}-image-${{ matrix.yum_repo_prefix }}fresh
+  #     - name: Load ${{ matrix.image }}:${{ matrix.yum_repo_prefix }}fresh image
+  #       run: docker load -i ${{ matrix.image }}.tar
+  #     - name: Build ${{ matrix.image}} image
+  #       uses: docker/build-push-action@v1
+  #       with:
+  #         repository: brianhlin/${{ matrix.image }}
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
+  #         path: ./.github/Dockerfile.dummy
+  #         build_args: IMAGE_NAME=${{ matrix.yum_repo_prefix }}, TAG_NAME=${{ matrix.yum_repo_prefix }}fresh
+  #         tags: ${{ matrix.yum_repo_prefix }}fresh, ${{ matrix.yum_repo_prefix }}${{ needs.get-timestamp.outputs.timestamp }}
